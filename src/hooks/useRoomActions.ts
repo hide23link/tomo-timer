@@ -35,7 +35,8 @@ export function useRoomActions(roomId: string, room: RoomData | null) {
     await updateDoc(ref, {
       state: 'idle',
       startedAt: null,
-      remainingAtPause: room.duration,
+      duration: 0,
+      remainingAtPause: 0,
     })
   }
 

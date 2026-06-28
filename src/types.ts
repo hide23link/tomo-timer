@@ -12,6 +12,6 @@ export interface RoomData {
 }
 
 export const ROOM_VALID_MS       = 24 * 60 * 60 * 1000  // 作成から24時間で期限切れ
-export const DEFAULT_DURATION_MS = 30 * 60 * 1000
+export const DEFAULT_DURATION_MS = 0
 export const MIN_ROOM_ID         = 1
 export const MAX_ROOM_ID         = 1000
