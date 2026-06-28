@@ -26,8 +26,8 @@ export function TimerControls({ room, hasControl, alarming, onAdd, onToggle, onR
           リセット
         </button>
       </div>
-      <button className="btn btn-main" disabled={!hasControl} onClick={onToggle}>
-        スタート / ストップ
+      <button className="btn btn-main" disabled={!hasControl && !alarming} onClick={onToggle}>
+        {alarming ? 'アラームを止める' : 'スタート / ストップ'}
       </button>
     </>
   )

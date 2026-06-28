@@ -99,7 +99,11 @@ function DevicePage({ roomId }: { roomId: string }) {
   }
 
   function handleToggle() {
-    if (alarming) { setAlarming(false); actions.resetToPreset(); return }
+    if (alarming) {
+      setAlarming(false)
+      if (hasControl) actions.resetToPreset()  // 制御権ありのみFirestore更新
+      return
+    }
     if (room?.state === 'running') actions.pause()
     else actions.start()
   }
