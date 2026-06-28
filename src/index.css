@@ -27,6 +27,14 @@ html, body {
   padding: 24px 16px;
 }
 
+@media (min-width: 480px) {
+  #root {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 8px;
+  }
+}
+
 /* 本体（白い縦長筐体） */
 .device {
   width: 360px;
