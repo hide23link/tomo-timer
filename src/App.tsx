@@ -16,6 +16,7 @@ import { storePin } from './utils/pin'
 import { generatePin } from './utils/roomAlloc'
 import { hashPin } from './utils/hash'
 import { findAvailableRoomId } from './utils/roomAlloc'
+import { canCreateRoom, addMyRoom } from './utils/myRooms'
 
 import { RoomSelector } from './components/RoomSelector'
 import { TimerDisplay } from './components/TimerDisplay'
@@ -81,12 +82,17 @@ function DevicePage({ roomId }: { roomId: string }) {
   }, [room?.state, alarming])
 
   async function handleCreateNew() {
+    if (!canCreateRoom()) {
+      alert('作成できるルームは最大3個までです（24時間で自動解放）')
+      return
+    }
     const newId = await findAvailableRoomId()
     if (!newId) {
       alert('現在ルームが満杯です。しばらくしてからお試しください。')
       return
     }
     const pin = await createRoomAt(newId)
+    addMyRoom(newId)
     setHasControl(true)
     navigate(`/room/${newId}`)
     setPendingPin(pin)
