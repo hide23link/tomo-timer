@@ -75,6 +75,16 @@ export function useRoomActions(roomId: string, room: RoomData | null) {
     return pin
   }
 
+  // タイムアップ後に設定時間（duration）に戻す
+  async function resetToPreset() {
+    if (!room || !roomId) return
+    await updateDoc(ref, {
+      state: 'idle',
+      startedAt: null,
+      remainingAtPause: room.duration,
+    })
+  }
+
   // PIN入力で操作権限取得。成功したらlocalStorageに保存
   async function enterPin(pin: string): Promise<'success' | 'wrong_pin'> {
     if (!room) return 'wrong_pin'
@@ -84,5 +94,5 @@ export function useRoomActions(roomId: string, room: RoomData | null) {
     return 'success'
   }
 
-  return { start, pause, reset, addMinutes, createRoom, enterPin }
+  return { start, pause, reset, resetToPreset, addMinutes, createRoom, enterPin }
 }

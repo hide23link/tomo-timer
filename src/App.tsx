@@ -93,14 +93,14 @@ function DevicePage({ roomId }: { roomId: string }) {
   }
 
   function handleToggle() {
-    if (alarming) { setAlarming(false); actions.reset(); return }
+    if (alarming) { setAlarming(false); actions.resetToPreset(); return }
     if (room?.state === 'running') actions.pause()
     else actions.start()
   }
 
   function handleReset() {
     setAlarming(false)
-    actions.reset()
+    actions.reset()  // 手動リセットは常に00:00
   }
 
   const isRunning = room?.state === 'running' && remainMs > 0
