@@ -4,6 +4,8 @@ import { db } from '../firebase'
 import type { RoomData } from '../types'
 import { ROOM_VALID_MS } from '../types'
 import { getRemainingMs, formatTime } from '../hooks/useTimer'
+import { getStoredPin } from '../utils/pin'
+import { getActiveMyRooms } from '../utils/myRooms'
 
 interface RoomEntry {
   id: string
@@ -22,7 +24,6 @@ export function RoomSelector({ roomId, onSelect, onCreateNew }: Props) {
   const [creating, setCreating] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // ドロップダウンを開いたときにルーム一覧を取得
   useEffect(() => {
     if (!open) return
     const cutoff = Timestamp.fromMillis(Date.now() - ROOM_VALID_MS)
@@ -37,7 +38,6 @@ export function RoomSelector({ roomId, onSelect, onCreateNew }: Props) {
     })
   }, [open])
 
-  // 外側クリックで閉じる
   useEffect(() => {
     function onOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -56,6 +56,16 @@ export function RoomSelector({ roomId, onSelect, onCreateNew }: Props) {
     } finally {
       setCreating(false)
     }
+  }
+
+  // 自分が作成したルームIDのセット
+  const myRoomIds = new Set(getActiveMyRooms().map(r => r.id))
+
+  function getRoomClass(id: string): string {
+    const base = 'room-item' + (id === roomId ? ' active' : '')
+    if (myRoomIds.has(id)) return base + ' room-item-owned'
+    if (getStoredPin(id) !== null) return base + ' room-item-control'
+    return base
   }
 
   return (
@@ -82,7 +92,7 @@ export function RoomSelector({ roomId, onSelect, onCreateNew }: Props) {
             return (
               <button
                 key={id}
-                className={'room-item' + (id === roomId ? ' active' : '')}
+                className={getRoomClass(id)}
                 onClick={() => { onSelect(id); setOpen(false) }}
               >
                 <span>ルーム #{id}</span>

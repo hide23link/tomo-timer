@@ -111,6 +111,10 @@ html, body {
 .room-item:last-child { border-bottom: none; }
 .room-item:hover { background: #eff0ea; }
 .room-item.active { background: #e2e6dc; color: #2e3a28; font-weight: 500; }
+.room-item.room-item-owned { background: #fce8ee; }
+.room-item.room-item-owned:hover { background: #f7d6e3; }
+.room-item.room-item-control { background: #e8f2e8; }
+.room-item.room-item-control:hover { background: #d8ead8; }
 .room-item-time {
   font-family: 'DSEG7Classic', monospace;
   font-size: 12px;
