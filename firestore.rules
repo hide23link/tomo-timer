@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow create: if int(roomId) >= 1 && int(roomId) <= 1000;
+      allow update: if int(roomId) >= 1 && int(roomId) <= 1000;
+      allow delete: if false;
+    }
+  }
+}
