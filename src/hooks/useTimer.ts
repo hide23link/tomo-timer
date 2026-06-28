@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { RoomData } from '../types'
+import { serverNow } from '../firebase'
 
 export function getRemainingMs(room: RoomData): number {
   if (room.state !== 'running' || !room.startedAt) {
     return room.remainingAtPause
   }
-  const elapsed = Date.now() - room.startedAt.toMillis()
+  const elapsed = serverNow() - room.startedAt.toMillis()
   return Math.max(0, room.remainingAtPause - elapsed)
 }
 

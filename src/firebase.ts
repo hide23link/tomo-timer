@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
-import { getDatabase } from 'firebase/database'
+import { getDatabase, ref, onValue } from 'firebase/database'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,3 +16,14 @@ const app = initializeApp(firebaseConfig)
 
 export const db = getFirestore(app)
 export const rtdb = getDatabase(app)
+
+// RTDBのサーバーとクライアントの時刻差を補正する
+let _serverOffset = 0
+onValue(ref(rtdb, '.info/serverTimeOffset'), (snap) => {
+  _serverOffset = snap.val() ?? 0
+})
+
+// サーバー基準の現在時刻（デバイス間のズレを補正）
+export function serverNow(): number {
+  return Date.now() + _serverOffset
+}
