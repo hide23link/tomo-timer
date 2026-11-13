@@ -4,14 +4,15 @@ interface Props {
   room: RoomData | null
   hasControl: boolean
   alarming: boolean
+  locked: boolean
   onAdd: (minutes: number) => void
   onToggle: () => void
   onReset: () => void
 }
 
-export function TimerControls({ room, hasControl, alarming, onAdd, onToggle, onReset }: Props) {
+export function TimerControls({ room, hasControl, alarming, locked, onAdd, onToggle, onReset }: Props) {
   const running = room?.state === 'running'
-  const addDisabled = !hasControl || (running && !alarming)
+  const addDisabled = locked || !hasControl || (running && !alarming)
 
   return (
     <>
@@ -22,11 +23,11 @@ export function TimerControls({ room, hasControl, alarming, onAdd, onToggle, onR
         <button className="btn" disabled={addDisabled} onClick={() => onAdd(1)}>
           1分
         </button>
-        <button className="btn" disabled={!hasControl} onClick={onReset}>
+        <button className="btn" disabled={locked || !hasControl} onClick={onReset}>
           リセット
         </button>
       </div>
-      <button className="btn btn-main" disabled={!hasControl && !alarming} onClick={onToggle}>
+      <button className="btn btn-main" disabled={locked || (!hasControl && !alarming)} onClick={onToggle}>
         {alarming ? 'アラームを止める' : 'スタート / ストップ'}
       </button>
     </>

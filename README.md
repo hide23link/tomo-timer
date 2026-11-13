@@ -7,7 +7,7 @@
 
 ```
 ┌─────────────────────────────────┐
-│  [ルーム #42 ▼]     👥 3   🔗   │
+│  [ルーム #42 ▼]  👥 3  🔗  (ロック) │
 │                                 │
 │            14:23                │  ← 7セグ表示（全員の画面で同時に進む）
 │           ▶ 実行中               │
@@ -23,6 +23,8 @@
 - **全端末で同じ残り時間** — 毎秒書き込むのではなく「開始時刻＋残り時間」だけを保存し、各端末が計算する方式
 - **PIN で操作権を共有** — ルーム作成時に 6 桁 PIN を自動発行。PIN を入れた人は誰でも操作可能（オーナーの概念なし）
 - **視聴者数表示** — いま何人がそのルームを見ているかを表示
+- **アラーム音** — 0:00 になると見ている全員の端末で「ピピピッ」と鳴る（Web Audio API で合成、音声ファイル不要。Android はバイブも）。1 分で自動停止
+- **ロック** — ON にすると画面の自動消灯を止め（Screen Wake Lock API）、誤操作防止のため全ボタンを無効化
 - **24 時間で自動解放** — ルームは 1〜1000 番のスロット制。作成から 24 時間で期限切れになり再利用される
 - **サーバーレス・無料枠で運用** — 静的ファイルは Cloudflare Workers、データは Firebase（Firestore + Realtime Database）
 
@@ -38,8 +40,9 @@
 | 操作権限 | Firebase 匿名認証 | ルームごとの 6 桁 PIN |
 | データ | Realtime Database | Firestore（タイマー）＋ Realtime Database（視聴者数） |
 | 同期方式 | 時刻ベース（終了予定時刻） | 時刻ベース（開始時刻＋残り時間） |
+| アラーム音・ロック | あり | あり（sync-timer から移植） |
 
-7 セグメント表示の UI と「時刻ベースで同期する」考え方は sync-timer から引き継いでいます。
+7 セグメント表示の UI、「時刻ベースで同期する」考え方、アラーム音とロック機能は sync-timer から引き継いでいます。
 
 ## 仕組み
 
@@ -100,6 +103,18 @@ PIN を本当の認証にしたい場合は、Firebase Authentication（匿名�
 
 Firebase の API キーはクライアントに埋め込まれる公開情報です（[Firebase の公式説明](https://firebase.google.com/docs/projects/api-keys)）。
 データの保護はセキュリティルール（`firestore.rules` / `database.rules.json`）で行っています。
+
+### アラームが鳴る条件
+
+Web アプリなので、**画面が点いていてアプリを表示しているとき** にだけ確実に鳴ります。
+タイマー中はロックを ON にして画面を点けたままにしてください。
+
+| | iPhone | Android |
+|---|---|---|
+| 画面が点いているとき | 音と点滅。マナーモードでも鳴る（iOS 16.4 以降） | 音・点滅・バイブ |
+| 画面が消えているとき・他のアプリを表示中 | 鳴らない | 遅れる、または鳴らない |
+
+音は一度どこかをタップした後でないと鳴りません（ブラウザの自動再生制限）。ページを開いたら画面を 1 回タップしてください。
 
 ## 動かしてみる
 
@@ -179,6 +194,7 @@ src/
 │  ├─ TimerDisplay.tsx     7 セグ表示
 │  ├─ TimerControls.tsx    10分 / 1分 / リセット / スタート・ストップ
 │  ├─ ShareButton.tsx      PIN 表示・共有・PIN 入力
+│  ├─ LockToggle.tsx       ロックスイッチ
 │  └─ ViewerCount.tsx      視聴者数
 ├─ hooks/
 │  ├─ useRoom.ts           Firestore のリアルタイム購読
@@ -190,6 +206,8 @@ src/
    ├─ pin.ts / hash.ts     PIN の保存・SHA-256
    ├─ myRooms.ts           自分が作成したルーム（最大 3 個）
    ├─ room.ts              ルーム ID 検証・有効期限判定
+   ├─ alarm.ts             アラーム音（Web Audio API）・バイブ
+   ├─ wakeLock.ts          画面の自動消灯防止
    └─ session.ts           視聴者数用のセッション ID
 firestore.rules            Firestore セキュリティルール
 database.rules.json        Realtime Database セキュリティルール

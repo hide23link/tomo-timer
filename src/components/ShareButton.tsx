@@ -12,6 +12,7 @@ interface Props {
   onPendingPinClear: () => void
   onControlGained: () => void
   actions: ReturnType<typeof useRoomActions>
+  disabled?: boolean
 }
 
 function formatRemaining(ms: number): string {
@@ -23,7 +24,7 @@ function formatRemaining(ms: number): string {
 
 type ModalMode = 'show' | 'enter' | null
 
-export function ShareButton({ room, roomId, hasControl, pendingPin, onPendingPinClear, onControlGained, actions }: Props) {
+export function ShareButton({ room, roomId, hasControl, pendingPin, onPendingPinClear, onControlGained, actions, disabled = false }: Props) {
   const [modal, setModal] = useState<ModalMode>(null)
   const [pinInput, setPinInput] = useState('')
   const [pinError, setPinError] = useState(false)
@@ -95,7 +96,7 @@ export function ShareButton({ room, roomId, hasControl, pendingPin, onPendingPin
 
   return (
     <>
-      <button className="share-btn" onClick={handleClick} disabled={!roomId} title="共有 / PIN入力">
+      <button className="share-btn" onClick={handleClick} disabled={!roomId || disabled} title="共有 / PIN入力">
         🔗
       </button>
 

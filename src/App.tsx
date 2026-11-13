@@ -17,12 +17,18 @@ import { generatePin } from './utils/roomAlloc'
 import { hashPin } from './utils/hash'
 import { findAvailableRoomId } from './utils/roomAlloc'
 import { canCreateRoom, addMyRoom } from './utils/myRooms'
+import { startAlarm, stopAlarm, primeAudio } from './utils/alarm'
+import { requestWakeLock, releaseWakeLock } from './utils/wakeLock'
 
 import { RoomSelector } from './components/RoomSelector'
 import { TimerDisplay } from './components/TimerDisplay'
 import { TimerControls } from './components/TimerControls'
 import { ShareButton } from './components/ShareButton'
 import { ViewerCount } from './components/ViewerCount'
+import { LockToggle } from './components/LockToggle'
+
+// タイムアップ後、アラームを自動で止めるまでの時間
+const ALARM_AUTO_STOP_MS = 60_000
 
 // 現在のroomId以外のルームを新規作成する（ドロップダウンから）
 async function createRoomAt(roomId: string): Promise<string> {
@@ -53,6 +59,7 @@ function DevicePage({ roomId }: { roomId: string }) {
   const [pendingPin, setPendingPin] = useState<string | null>(null)
   const [alarming, setAlarming] = useState(false)
   const [blinkOn, setBlinkOn] = useState(true)
+  const [locked, setLocked] = useState(false)
   const prevRemRef = useRef<number | null>(null)
 
   // localStorageからPIN権限を確認
@@ -76,10 +83,35 @@ function DevicePage({ roomId }: { roomId: string }) {
     prevRemRef.current = remainMs
   }, [remainMs, room?.state])
 
-  // 外部リセット（他のユーザーがリセットした）でアラーム解除
+  // 外部リセット（他のユーザーがリセットした）や延長で再スタートしたらアラーム解除
   useEffect(() => {
-    if (alarming && room?.state !== 'running') setAlarming(false)
-  }, [room?.state, alarming])
+    if (alarming && (room?.state !== 'running' || remainMs > 0)) setAlarming(false)
+  }, [room?.state, remainMs, alarming])
+
+  // アラーム音（sync-timer から移植）。1分で自動停止し、操作権があれば設定時間に戻す
+  useEffect(() => {
+    if (!alarming) {
+      stopAlarm()
+      return
+    }
+    startAlarm()
+    const t = setTimeout(() => {
+      setAlarming(false)
+      if (hasControl) actions.resetToPreset()
+    }, ALARM_AUTO_STOP_MS)
+    return () => {
+      clearTimeout(t)
+      stopAlarm()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alarming])
+
+  // ロック中は画面を消灯させない（Screen Wake Lock API）
+  useEffect(() => {
+    if (locked) requestWakeLock()
+    else releaseWakeLock()
+    return () => { releaseWakeLock() }
+  }, [locked])
 
   async function handleCreateNew() {
     if (!canCreateRoom()) {
@@ -121,7 +153,7 @@ function DevicePage({ roomId }: { roomId: string }) {
     '■ 停止中'
 
   return (
-    <div className={'device' + (alarming ? ' alarm' : '')}>
+    <div className={'device' + (alarming ? ' alarm' : '')} onClick={primeAudio}>
 
       {/* ルーム選択バー */}
       <div className="room-bar">
@@ -129,6 +161,7 @@ function DevicePage({ roomId }: { roomId: string }) {
           roomId={roomId}
           onSelect={id => navigate(`/room/${id}`)}
           onCreateNew={handleCreateNew}
+          disabled={locked}
         />
         <ViewerCount count={viewerCount} />
         <ShareButton
@@ -139,7 +172,9 @@ function DevicePage({ roomId }: { roomId: string }) {
           onPendingPinClear={() => setPendingPin(null)}
           onControlGained={() => setHasControl(true)}
           actions={actions}
+          disabled={locked}
         />
+        <LockToggle locked={locked} onChange={setLocked} />
       </div>
 
       {/* タイマー表示 */}
@@ -156,6 +191,7 @@ function DevicePage({ roomId }: { roomId: string }) {
         room={room}
         hasControl={hasControl && !unselected}
         alarming={alarming}
+        locked={locked}
         onAdd={actions.addMinutes}
         onToggle={handleToggle}
         onReset={handleReset}

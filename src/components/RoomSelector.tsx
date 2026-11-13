@@ -16,13 +16,18 @@ interface Props {
   roomId: string
   onSelect: (id: string) => void
   onCreateNew: () => void
+  disabled?: boolean
 }
 
-export function RoomSelector({ roomId, onSelect, onCreateNew }: Props) {
+export function RoomSelector({ roomId, onSelect, onCreateNew, disabled = false }: Props) {
   const [open, setOpen] = useState(false)
   const [rooms, setRooms] = useState<RoomEntry[]>([])
   const [creating, setCreating] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (disabled) setOpen(false)
+  }, [disabled])
 
   useEffect(() => {
     if (!open) return
@@ -73,7 +78,7 @@ export function RoomSelector({ roomId, onSelect, onCreateNew }: Props) {
       <button
         className="room-btn"
         onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
-        disabled={creating}
+        disabled={creating || disabled}
       >
         {creating ? '作成中…' : label}
         {!creating && <i className="chev">&#9660;</i>}
