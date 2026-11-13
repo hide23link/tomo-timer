@@ -1,10 +1,55 @@
 rules_version = '2';
+
+// 注意: このアプリはログイン不要の設計のため、PINは「誤操作防止」のための仕組みであり
+// サーバー側でPINを検証しているわけではない（誰でもタイマー操作は可能）。
+// ここでは以下だけをサーバー側で保証する:
+//   - ルームIDは 1〜1000 のみ
+//   - 決められた6項目以外のデータを書き込めない（型・範囲もチェック）
+//   - 有効期限内(24時間)のルームの pinHash / createdAt は書き換えられない
+//     （＝他人のルームのPINを差し替えて乗っ取ることはできない）
+//   - 削除は不可
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function validRoomId(roomId) {
+      return roomId.matches('^[1-9][0-9]{0,3}$') && int(roomId) <= 1000;
+    }
+
+    function validRoom(d) {
+      return d.keys().hasAll(['duration', 'state', 'startedAt', 'remainingAtPause', 'pinHash', 'createdAt'])
+        && d.keys().hasOnly(['duration', 'state', 'startedAt', 'remainingAtPause', 'pinHash', 'createdAt'])
+        && d.duration is number && d.duration >= 0 && d.duration <= 180 * 60 * 1000
+        && d.remainingAtPause is number && d.remainingAtPause >= 0 && d.remainingAtPause <= 24 * 60 * 60 * 1000
+        && d.state in ['idle', 'running', 'paused']
+        && (d.startedAt == null || d.startedAt is timestamp)
+        && d.pinHash is string && d.pinHash.matches('^[0-9a-f]{64}$')
+        && d.createdAt is timestamp;
+    }
+
+    function isExpired(d) {
+      return request.time > d.createdAt + duration.value(24, 'h');
+    }
+
     match /rooms/{roomId} {
       allow read: if true;
-      allow create: if int(roomId) >= 1 && int(roomId) <= 1000;
-      allow update: if int(roomId) >= 1 && int(roomId) <= 1000;
+
+      // 新規作成: createdAt はサーバー時刻のみ
+      allow create: if validRoomId(roomId)
+        && validRoom(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if validRoomId(roomId)
+        && validRoom(request.resource.data)
+        && (
+          // 通常操作: pinHash と createdAt は変更不可
+          (request.resource.data.pinHash == resource.data.pinHash
+            && request.resource.data.createdAt == resource.data.createdAt)
+          ||
+          // 期限切れルームの再利用: 新しいPIN・サーバー時刻での作り直しのみ許可
+          (isExpired(resource.data)
+            && request.resource.data.createdAt == request.time)
+        );
+
       allow delete: if false;
     }
   }
