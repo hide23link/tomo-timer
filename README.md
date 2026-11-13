@@ -179,8 +179,8 @@ npx wrangler deploy
 ```
 
 ビルド時に `.env.local` の値が埋め込まれるため、Workers 側に環境変数を設定する必要はありません。
-Firebase 側で API キーの利用元を自分のドメインに制限しておくことをおすすめします
-（Google Cloud コンソール → API とサービス → 認証情報 → HTTP リファラー制限）。
+Google Cloud コンソール（API とサービス → 認証情報）で API キーに HTTP リファラー制限をかけておくと、キーを他サイトで流用されにくくなります。
+ただし Firestore / Realtime Database へのアクセス自体は API キーなしでも可能なため、データの保護はあくまでセキュリティルールが担います（より強く制限したい場合は App Check）。
 
 ## ディレクトリ構成
 
